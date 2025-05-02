@@ -75,7 +75,7 @@ public class Hook(ZombieSharp core, Weapons weapons, Respawn respawn, ILogger<Zo
 
                     if(attribute != null)
                     {
-                        _weapons.PurchaseWeapon(client, attribute);
+                        _weapons.PurchaseWeapon(client, attribute, true);
                         hook.SetReturn(AcquireResult.NotAllowedByProhibition);
                         return HookResult.Handled;
                     }
@@ -91,7 +91,7 @@ public class Hook(ZombieSharp core, Weapons weapons, Respawn respawn, ILogger<Zo
 
                 if(attribute != null)
                 {
-                    _weapons.PurchaseWeapon(client, attribute);
+                    _weapons.PurchaseWeapon(client, attribute, true);
                     hook.SetReturn(AcquireResult.NotAllowedByProhibition);
                     return HookResult.Handled;
                 }

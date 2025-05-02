@@ -1,7 +1,6 @@
 ﻿using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Core.Capabilities;
-using CounterStrikeSharp.API.Modules.Cvars;
 using Microsoft.Extensions.Logging;
 using ZombieSharp.Api;
 using ZombieSharp.Database;
@@ -14,8 +13,8 @@ namespace ZombieSharp;
 public partial class ZombieSharp : BasePlugin
 {
     public override string ModuleName => "ZombieSharp";
-    public override string ModuleVersion => "2.2.1";
-    public override string ModuleAuthor => "Oylsister, +SyntX";
+    public override string ModuleVersion => "2.3.0";
+    public override string ModuleAuthor => "Oylsister, SyntX";
     public override string ModuleDescription => "Infection/survival style gameplay for CS2 in C#";
 
     private Events? _event;
@@ -54,6 +53,8 @@ public partial class ZombieSharp : BasePlugin
         PlayerData.PlayerPurchaseCount = [];
         PlayerData.PlayerBurnData = [];
         PlayerData.PlayerRegenData = [];
+        PlayerData.PlayerSpawnData = [];
+        PlayerData.PlayerMarketData = [];
 
         api = new ZombieSharpInterface();
 
@@ -91,7 +92,7 @@ public partial class ZombieSharp : BasePlugin
         Server.ExecuteCommand("mp_ignore_round_win_conditions 1");
         Server.ExecuteCommand("mp_give_player_c4 0");
 
-        // initial
+        _weapons.InitializeMarketData();
         _infect.InfectOnLoad();
         _weapons.WeaponOnLoad();
         _event.EventOnLoad();
@@ -109,8 +110,10 @@ public partial class ZombieSharp : BasePlugin
         PlayerData.ZombiePlayerData = null;
         PlayerData.PlayerClassesData = null;
         PlayerData.PlayerPurchaseCount = null;
-        PlayerData.PlayerRegenData = null;
         PlayerData.PlayerBurnData = null;
+        PlayerData.PlayerRegenData = null;
+        PlayerData.PlayerSpawnData = null;
+        PlayerData.PlayerMarketData = null;
 
         _event?.EventOnUnload();
         _hook?.HookOnUnload();

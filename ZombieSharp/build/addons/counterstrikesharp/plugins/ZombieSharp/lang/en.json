@@ -1,13 +1,16 @@
 {
     "Prefix": "{Green}[Z:Sharp]{Default}",
-
     "Core.MustBeAlive": "You must be alive to use this feature.",
     "Core.MustBeHuman": "You must be human to use this feature.",
     "Core.MustBeDead": "You must be dead to use this feature",
     "Core.MustBeInTeam": "You must join team to use this feature",
     "Core.FeatureDisbled": "This feature has been disabled by server.",
     "Core.TargetInvalid": "The target is invalid",
-
+    "Core.PurchaseDisabled": "Purchasing is disabled.",
+    "Core.MenuUnavailable": "Menu system is unavailable.",
+    "Core.MenuError": "An error occurred while opening the menu.",
+    "Core.Error": "An error occurred. Please try again.",
+  
     "Infect.BecomeZombie": "You have been infected! Go pass it on to as many other players as you can.",
     "Infect.BecomeHuman": "The merciful gods (known as admins) have resurrected your soul, find some cover!",
     "Infect.MotherZombieReset": "Mother Zombie cycle has been reset!",
@@ -19,29 +22,55 @@
     "Human.AlreadyHuman": "Target is already humanized.",
     "Human.SuccessAll": "Successfully humanized all targets.",
     "Human.Success": "Successfully humanized {Olive}{0}{Default}.",
-
-    "Weapon.IsRestricted": "Weapon {Olive}{0}{Default} is restriced.",
+  
+    "Weapon.IsRestricted": "Weapon {Olive}{0}{Default} is restricted.",
     "Weapon.NotEnoughCash": "You don't have enough cash to purchase this weapon.",
     "Weapon.PurchaseSuccess": "You have purchased weapon {Olive}{0}{Default}.",
     "Weapon.BuyZoneOnly": "You must be in buyzone to purchase a weapon.",
     "Weapon.ReachMaxPurchase": "You have reached maximum purchases for this item {Olive}({0} times).",
     "Weapon.PurchaseCount": "Purchase Limit ({0}/{1})",
     "Weapon.NotFound": "Weapon \"{0}\" is not found",
-    
+  
     "Restrict.Weapon": "Weapon {Olive}{0}{Default} has been restricted",
     "Restrict.MainMenu": "Weapon Restriction Menu",
     "Unrestrict.Weapon": "Weapon {Olive}{0}{Default} has been unrestricted",
     "Unrestrict.MainMenu": "Weapon Unrestriction Menu",
-
+  
     "Teleport.Countdown": "Teleport in {0} seconds",
     "Teleport.Success": "You have been teleported back to spawn.",
-
+  
     "Respawn.Disabled": "Currently respawn has been disabled. You will be respawned again next round.",
-
+  
     "Classes.MainMenu": "Player Classes Menu",
     "Classes.MainMenu.Zombie": "Zombie Classes",
     "Classes.MainMenu.Human": "Human Classes",
     "Classes.Select.Zombie": "Zombie Classes Menu",
     "Classes.Select.Human": "Human Classes Menu",
-    "Classes.SelectSuccess": "You have selected a new player classes, this will be updated on next round."
-}
+    "Classes.SelectSuccess": "You have selected a new player classes, this will be updated on next round.",
+  
+    "ZMarket.MainMenu": "ZMarket Menu",
+    "ZMarket.SaveWeapons": "Save Current Weapons",
+    "ZMarket.ViewEditSetup": "View/Edit Saved Setup",
+    "ZMarket.BuySavedSetup": "Buy Saved Setup",
+    "ZMarket.AutoRebuy": "Auto Rebuy",
+    "ZMarket.BuyWeapons": "Buy Weapons",
+    "ZMarket.WeaponsSaved": "Your current weapons have been saved.",
+    "ZMarket.NoSavedSetup": "You have no saved weapon setup.",
+    "ZMarket.SetupUpdated": "Setup updated with {Olive}{0}{Default}.",
+    "ZMarket.NoWeaponsInCategory": "No weapons available in {Olive}{0}{Default} category.",
+    "ZMarket.Pistols": "Pistols",
+    "ZMarket.Shotguns": "Shotguns",
+    "ZMarket.SMGs": "SMGs",
+    "ZMarket.Rifles": "Rifles",
+    "ZMarket.Snipers": "Snipers",
+    "ZMarket.MachineGuns": "Machine Guns",
+    "ZMarket.Grenades": "Grenades",
+    "ZMarket.Equipment": "Equipment",
+    "ZMarket.OverwriteSetup": "Overwrite Current Setup",
+    "ZMarket.ChangeSetup": "Change Setup",
+    "ZMarket.Back": "Back",
+    "ZMarket.Primary": "Primary",
+    "ZMarket.Secondary": "Secondary",
+    "ZMarket.Zeus": "Zeus",
+    "ZMarket.Kevlar": "Kevlar",
+  }

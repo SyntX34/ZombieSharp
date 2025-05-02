@@ -116,7 +116,7 @@ public class Infect(ZombieSharp core, ILogger<ZombieSharp> logger, Classes class
 
     public void InfectOnRoundFreezeEnd()
     {
-        // kill timer just in case.
+        // kill timer just in case
         InfectKillInfectionTimer();
 
         if(GameSettings.Settings == null)
@@ -124,11 +124,16 @@ public class Infect(ZombieSharp core, ILogger<ZombieSharp> logger, Classes class
             _logger.LogCritical("[InfectOnRoundFreezeEnd] Game Settings is null!");
             _infectCountNumber = 15;
         }
-
         else
+        {
             _infectCountNumber = (int)GameSettings.Settings.FirstInfectionTimer;
+        }
 
+        // Start the mother zombie timer
         _firstInfection = _core.AddTimer(_infectCountNumber + 1, InfectMotherZombie, TimerFlags.STOP_ON_MAPCHANGE);
+
+        // Initialize sound counter for the last 10 seconds
+        int soundCounter = Math.Min(_infectCountNumber, 10);
 
         _infectCountTimer = _core.AddTimer(1f, () => 
         {
@@ -138,9 +143,36 @@ public class Infect(ZombieSharp core, ILogger<ZombieSharp> logger, Classes class
                 return;
             }
 
+            // Display countdown
             Utils.PrintToCenterAll($" {_core.Localizer["Infect.Countdown", _infectCountNumber]}");
-            _infectCountNumber--;
 
+            // Play sound when soundCounter is 10 to 1
+            if(soundCounter >= 1 && soundCounter <= 10)
+            {
+                string soundPath = $"countdown{soundCounter}";
+                foreach(var player in Utilities.GetPlayers())
+                {
+                    if(player == null || !player.IsValid || player.IsBot)
+                        continue;
+                    try
+                    {
+                        Utils.EmitSound(player, soundPath);
+                        _logger.LogInformation("[InfectOnRoundFreezeEnd] Played countdown sound {0} for player {1} at {2} seconds", soundPath, player.PlayerName, _infectCountNumber);
+                    }
+                    catch(Exception ex)
+                    {
+                        _logger.LogError("[InfectOnRoundFreezeEnd] Failed to play sound {0} for player {1}: {2}", soundPath, player.PlayerName, ex.Message);
+                    }
+                }
+                _logger.LogInformation("[InfectOnRoundFreezeEnd] Played countdown sound {0} at {1} seconds (soundCounter: {2})", soundPath, _infectCountNumber, soundCounter);
+            }
+
+            // Decrement counters
+            _infectCountNumber--;
+            if(soundCounter > 0)
+            {
+                soundCounter--;
+            }
         }, TimerFlags.REPEAT|TimerFlags.STOP_ON_MAPCHANGE);
     }
 
@@ -161,11 +193,11 @@ public class Infect(ZombieSharp core, ILogger<ZombieSharp> logger, Classes class
 
     public void InfectMotherZombie()
     {
-        // if infection already started then stop it.
+        // if infection already started then stop it
         if(InfectHasStarted())
             return;
 
-        // we get how much zombie we need.
+        // we get how much zombie we need
         var currentPlayer = Utilities.GetPlayers();
         var ratio = 7f;
 
@@ -174,9 +206,10 @@ public class Infect(ZombieSharp core, ILogger<ZombieSharp> logger, Classes class
             _logger.LogCritical("[InfectMotherZombie] Game Settings is null!");
             ratio = 7f;
         }
-
         else
+        {
             ratio = GameSettings.Settings.MotherZombieRatio;
+        }
 
         var requireZombie = (int)Math.Ceiling(currentPlayer.Count / ratio);
 
@@ -185,11 +218,11 @@ public class Infect(ZombieSharp core, ILogger<ZombieSharp> logger, Classes class
 
         foreach(var player in currentPlayer)
         {
-            // null or not alive player.
+            // null or not alive player
             if(player == null || !player.PawnIsAlive)
                 continue;
 
-            // not in the data list.
+            // not in the data list
             if(!PlayerData.ZombiePlayerData!.ContainsKey(player))
                 continue;
 
@@ -205,37 +238,37 @@ public class Infect(ZombieSharp core, ILogger<ZombieSharp> logger, Classes class
 
             foreach(var player in currentPlayer)
             {
-                // null or not alive player.
+                // null or not alive player
                 if(player == null || !player.PawnIsAlive)
                     continue;
 
-                // not in the data list.
+                // not in the data list
                 if(!PlayerData.ZombiePlayerData!.ContainsKey(player))
                     continue;
 
                 if(PlayerData.ZombiePlayerData[player].MotherZombie == ZombiePlayer.MotherZombieStatus.LAST)
                 {
-                    // add to candidate.
+                    // add to candidate
                     candidate.Add(player);
 
-                    // Mother zombie status to none.
+                    // Mother zombie status to none
                     PlayerData.ZombiePlayerData[player].MotherZombie = ZombiePlayer.MotherZombieStatus.NONE;
                 }
             }
         }
 
-        // we will infect motherzombie here.
-        // we have to loop all candidate in order to ensure we get all required zombie as we want.
-        // variable check total zombie made.
+        // we will infect motherzombie here
+        // we have to loop all candidate in order to ensure we get all required zombie as we want
+        // variable check total zombie made
         var infected = 0;
 
         foreach(var player in candidate)
         {
-            // we stop here if all zombie is made.
+            // we stop here if all zombie is made
             if(infected >= requireZombie)
                 return;
 
-            // check every time.
+            // check every time
             if(player == null || !player.IsValid || !player.PawnIsAlive)
                 continue;
 
@@ -272,23 +305,23 @@ public class Infect(ZombieSharp core, ILogger<ZombieSharp> logger, Classes class
                 continue;
             }
 
-            // if player is not in the dictionary then skip it.
+            // if player is not in the dictionary then skip it
             if(!PlayerData.ZombiePlayerData.ContainsKey(player))
             {
                 _logger.LogError("[InfectOnPreRoundStart] Player {name} is not in ZombiePlayersData!", player.PlayerName);
                 continue;
             }
 
-            // set to false.
+            // set to false
             PlayerData.ZombiePlayerData[player].Zombie = false;
 
-            // switch their team to CT. and make sure they are not spectator or else they will get spawned with another.
+            // switch their team to CT and make sure they are not spectator or else they will get spawned with another
             if(player.Team != CsTeam.Spectator && player.Team != CsTeam.None && switchTeam)
                 player.SwitchTeam(CsTeam.CounterTerrorist);
         }
     }
 
-    // we need to set mother zombie to last if they are chosen. so when mother zombie candidate run out we bring them to motherzombie cycle again.
+    // we need to set mother zombie to last if they are chosen so when mother zombie candidate run out we bring them to motherzombie cycle again
     public void InfectOnRoundEnd()
     {
         if(PlayerData.ZombiePlayerData == null)
@@ -305,14 +338,14 @@ public class Infect(ZombieSharp core, ILogger<ZombieSharp> logger, Classes class
                 continue;
             }
 
-            // check if player is in dictionary and motherzombie is chosen then we have to set them to last.
+            // check if player is in dictionary and motherzombie is chosen then we have to set them to last
             if(!PlayerData.ZombiePlayerData.ContainsKey(player))
             {
                 _logger.LogError("[InfectOnRoundEnd] Player {name} is not in ZombiePlayersData!", player.PlayerName);
                 continue;
             }
 
-            // set mother zombie status to Last.
+            // set mother zombie status to Last
             if(PlayerData.ZombiePlayerData[player].MotherZombie == ZombiePlayer.MotherZombieStatus.CHOSEN)
                 PlayerData.ZombiePlayerData[player].MotherZombie = ZombiePlayer.MotherZombieStatus.LAST;
         }
@@ -334,7 +367,7 @@ public class Infect(ZombieSharp core, ILogger<ZombieSharp> logger, Classes class
             return;
         }
 
-        // if infect is not started yet then tell them yeah.
+        // if infect is not started yet then tell them yeah
         if(!InfectHasStarted())
         {
             InfectKillInfectionTimer();
@@ -353,10 +386,10 @@ public class Infect(ZombieSharp core, ILogger<ZombieSharp> logger, Classes class
             return;
         }
 
-        // set player zombie to true.
+        // set player zombie to true
         PlayerData.ZombiePlayerData[client].Zombie = true;
 
-        // we get player class for applying attribute here.
+        // we get player class for applying attribute here
         var applyClass = PlayerData.PlayerClassesData?[client].ZombieClass;
 
         // set motherzombie status to chosen
@@ -364,11 +397,11 @@ public class Infect(ZombieSharp core, ILogger<ZombieSharp> logger, Classes class
         {
             PlayerData.ZombiePlayerData[client].MotherZombie = ZombiePlayer.MotherZombieStatus.CHOSEN;
             
-            // if mother zombie class is specificed then change it, or else we just use player setting class from above.
+            // if mother zombie class is specified then change it, or else we just use player setting class from above
             if(Classes.MotherZombie != null)
                 applyClass = Classes.MotherZombie;
 
-            // if teleport zombie back to spawn is enabled then we teleport them back to spawn.
+            // if teleport zombie back to spawn is enabled then we teleport them back to spawn
             if(GameSettings.Settings?.MotherZombieTeleport ?? false)
             {
                 Server.NextWorldUpdate(() => 
@@ -392,16 +425,16 @@ public class Infect(ZombieSharp core, ILogger<ZombieSharp> logger, Classes class
         // remove all player weapon
         Utils.DropAllWeapon(client);
 
-        //scream sound.
+        // scream sound
         Utils.EmitSound(client, "zr.amb.scream");
 
-        // apply class attribute.
+        // apply class attribute
         _classes?.ClassesApplyToPlayer(client, applyClass);
 
         // create fake killfeed
         if(attacker != null)
         {
-            // fire event.
+            // fire event
             EventPlayerDeath @event = new EventPlayerDeath(false);
 
             @event.Userid = client;
@@ -414,7 +447,7 @@ public class Infect(ZombieSharp core, ILogger<ZombieSharp> logger, Classes class
             client.ActionTrackingServices!.MatchStats.Deaths += 1;
         }
 
-        // tell them you have been infect
+        // tell them you have been infected
         client.PrintToChat($" {_core.Localizer["Prefix"]} {_core.Localizer["Infect.BecomeZombie"]}");
     }
 
@@ -449,14 +482,14 @@ public class Infect(ZombieSharp core, ILogger<ZombieSharp> logger, Classes class
         // set player zombie to false
         PlayerData.ZombiePlayerData[client].Zombie = false;
 
-        // switch team to terrorist
+        // switch team to Counter-Terrorist
         client.SwitchTeam(CsTeam.CounterTerrorist);
 
-        // if force then tell them that you have been force
+        // if force then tell them that you have been forced
         if(force)
             client.PrintToChat($" {_core.Localizer["Prefix"]} {_core.Localizer["Infect.BecomeHuman"]}");
 
-        // apply class attribute.
+        // apply class attribute
         _classes?.ClassesApplyToPlayer(client, PlayerData.PlayerClassesData?[client].HumanClass!);
     }
 

@@ -62,7 +62,7 @@ public class Events(ZombieSharp core, Infect infect, GameSettings settings, Clas
     {
         var client = Utilities.GetPlayerFromSlot(playerslot);
 
-        if(client == null)
+        if (client == null)
             return;
 
         PlayerData.ZombiePlayerData?.Add(client, new());
@@ -71,15 +71,17 @@ public class Events(ZombieSharp core, Infect infect, GameSettings settings, Clas
         PlayerData.PlayerSpawnData?.Add(client, new());
         PlayerData.PlayerBurnData?.Add(client, null);
         PlayerData.PlayerRegenData?.Add(client, null);
+        PlayerData.PlayerMarketData?.Add(client, new());
 
         _classes?.ClassesOnClientPutInServer(client);
+        _weapons?.OnClientPutInServer(client);
     }
 
     public void OnClientDisconnect(int playerslot)
     {
         var client = Utilities.GetPlayerFromSlot(playerslot);
 
-        if(client == null)
+        if (client == null)
             return;
 
         PlayerData.ZombiePlayerData?.Remove(client);
@@ -87,10 +89,10 @@ public class Events(ZombieSharp core, Infect infect, GameSettings settings, Clas
         PlayerData.PlayerPurchaseCount?.Remove(client);
         PlayerData.PlayerSpawnData?.Remove(client);
         PlayerData.PlayerBurnData?.Remove(client);
+        PlayerData.PlayerMarketData?.Remove(client);
         HealthRegen.RegenOnClientDisconnect(client);
     }
 
-    // if reload a plugin this part won't be executed until you change map;
     public void OnMapStart(string mapname)
     {
         _settings.GameSettingsOnMapStart();
@@ -99,7 +101,7 @@ public class Events(ZombieSharp core, Infect infect, GameSettings settings, Clas
         _hitgroup.HitGroupOnMapStart();
         _convar.ConVarOnLoad();
         _convar.ConVarExecuteOnMapStart(mapname);
-        
+
         Server.ExecuteCommand("sv_predictable_damage_tag_ticks 0");
         Server.ExecuteCommand("mp_ignore_round_win_conditions 1");
         Server.ExecuteCommand("mp_give_player_c4 0");
@@ -107,17 +109,17 @@ public class Events(ZombieSharp core, Infect infect, GameSettings settings, Clas
 
     public void OnPrecahceResources(ResourceManifest manifest)
     {
-        if(Classes.ClassesConfig == null)
+        if (Classes.ClassesConfig == null)
         {
             _logger.LogCritical("[OnPrecahceResources] The player classes config is null or not loaded yet!");
             return;
         }
-    
-        foreach(var classes in Classes.ClassesConfig.Values)
+
+        foreach (var classes in Classes.ClassesConfig.Values)
         {
-            if(!string.IsNullOrEmpty(classes.Model))
+            if (!string.IsNullOrEmpty(classes.Model))
             {
-                if(classes.Model != "default")
+                if (classes.Model != "default")
                     manifest.AddResource(classes.Model!);
             }
         }
@@ -145,17 +147,15 @@ public class Events(ZombieSharp core, Infect infect, GameSettings settings, Clas
 
     public HookResult OnPlayerDeath(EventPlayerDeath @event, GameEventInfo info)
     {
-        // check the player count if there is any team that all dead.
-        if(Infect.InfectHasStarted())
+        if (Infect.InfectHasStarted())
             RoundEnd.CheckGameStatus();
 
-        // play sound for zombie when killed by human.
         var client = @event.Userid;
 
-        if(client == null)
+        if (client == null)
             return HookResult.Continue;
 
-        if(Infect.IsClientInfect(client))
+        if (Infect.IsClientInfect(client))
             Utils.EmitSound(client, "zr.amb.zombie_die");
 
         _respawn.RespawnOnPlayerDeath(client);
@@ -168,42 +168,34 @@ public class Events(ZombieSharp core, Infect infect, GameSettings settings, Clas
     {
         var client = @event.Userid;
 
-        if(client == null)
+        if (client == null)
             return HookResult.Continue;
 
-        // when player join server this automatically trigger so we have to prevent this so they can switch team later.
-        if(client.Team == CsTeam.None || client.Team == CsTeam.Spectator)
+        if (client.Team == CsTeam.None || client.Team == CsTeam.Spectator)
             return HookResult.Continue;
 
         _classes.ClassesOnPlayerSpawn(client);
+        _weapons.OnPlayerSpawn(client);
 
-        if(Infect.InfectHasStarted())
+        if (Infect.InfectHasStarted())
         {
             var team = GameSettings.Settings?.RespawTeam ?? 0;
 
-            if(team == 0)
+            if (team == 0)
                 _infect.InfectClient(client);
-
-            else if(team == 1)
+            else if (team == 1)
                 _infect.HumanizeClient(client);
-
-            // get the player team
             else
             {
-                // not zombie
-                if(!PlayerData.ZombiePlayerData?[client].Zombie ?? false)
+                if (!(PlayerData.ZombiePlayerData?[client].Zombie ?? false))
                     _infect.HumanizeClient(client);
-
-                // human
                 else
                     _infect.InfectClient(client);
             }
         }
-
         else
             _infect.HumanizeClient(client);
 
-        // refresh purchase count here.
         Utils.RefreshPurchaseCount(client);
         _core.AddTimer(0.2f, () => _teleport.TeleportOnPlayerSpawn(client));
 
@@ -216,22 +208,18 @@ public class Events(ZombieSharp core, Infect infect, GameSettings settings, Clas
         var team = @event.Team;
         var isBot = @event.Isbot;
 
-        if(isBot)
+        if (isBot)
             return HookResult.Continue;
 
-        //Server.PrintToChatAll($"{client?.PlayerName} join team {team}.");
-
-        if(!GameSettings.Settings?.AllowRespawnJoinLate ?? false)
+        if (!GameSettings.Settings?.AllowRespawnJoinLate ?? false)
             return HookResult.Continue;
 
-        if(team > 1)
+        if (team > 1)
         {
-            _core.AddTimer(1.0f, () => {
-                if(client == null)
-                {
-                    //Server.PrintToChatAll("Client is fucking null!");
+            _core.AddTimer(1.0f, () =>
+            {
+                if (client == null)
                     return;
-                }
 
                 Respawn.RespawnClient(client);
             });
@@ -251,6 +239,7 @@ public class Events(ZombieSharp core, Infect infect, GameSettings settings, Clas
         _infect.InfectKillInfectionTimer();
         Utils.RemoveRoundObjective();
         RoundEnd.RoundEndOnRoundStart();
+        _weapons.OnRoundStart();
         Server.PrintToChatAll($" {_core.Localizer["Prefix"]} {_core.Localizer["Infect.GameInfo"]}");
         return HookResult.Continue;
     }
