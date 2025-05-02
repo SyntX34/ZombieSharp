@@ -1,6 +1,7 @@
 ﻿using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Core.Capabilities;
+using CounterStrikeSharp.API.Modules.Cvars;
 using Microsoft.Extensions.Logging;
 using ZombieSharp.Api;
 using ZombieSharp.Database;
@@ -13,8 +14,8 @@ namespace ZombieSharp;
 public partial class ZombieSharp : BasePlugin
 {
     public override string ModuleName => "ZombieSharp";
-    public override string ModuleVersion => "2.2.0";
-    public override string ModuleAuthor => "Oylsister";
+    public override string ModuleVersion => "2.2.1";
+    public override string ModuleAuthor => "Oylsister, +SyntX";
     public override string ModuleDescription => "Infection/survival style gameplay for CS2 in C#";
 
     private Events? _event;
@@ -34,14 +35,16 @@ public partial class ZombieSharp : BasePlugin
     private RoundEnd? _roundend;
     private HealthRegen? _healthregen;
     private readonly ILogger<ZombieSharp> _logger;
+    private readonly ILoggerFactory _loggerFactory;
 
     // API stuff
     ZombieSharpInterface? api { get; set; }
     public static PluginCapability<IZombieSharpAPI> APICapability = new("zombiesharp:core");
 
-    public ZombieSharp(ILogger<ZombieSharp> logger)
+    public ZombieSharp(ILogger<ZombieSharp> logger, ILoggerFactory loggerFactory)
     {
         _logger = logger;
+        _loggerFactory = loggerFactory;
     }
 
     public override void Load(bool hotReload)
@@ -57,11 +60,11 @@ public partial class ZombieSharp : BasePlugin
         Capabilities.RegisterPluginCapability(APICapability, () => api);
 
         _database = new DatabaseMain(this, _logger);
-        _classes = new Classes(this, _database, _logger);
+        _classes = new Classes(this, _database, _loggerFactory.CreateLogger<Classes>());
         _infect = new Infect(this, _logger, _classes, api);
         _utils = new Utils(this, _logger);
         _settings = new GameSettings(_logger);
-        _weapons = new Weapons(this, _logger);
+        _weapons = new Weapons(this, _loggerFactory.CreateLogger<Weapons>());
         _respawn = new Respawn(this, _logger);
         _hook = new Hook(this, _weapons, _respawn, _logger);
         _teleport = new Teleport(this, _logger);
@@ -73,7 +76,7 @@ public partial class ZombieSharp : BasePlugin
         _knockback = new Knockback(_logger);
         _healthregen = new HealthRegen(this, _logger);
 
-        if(hotReload)
+        if (hotReload)
         {
             _logger.LogWarning("[Load] The plugin is hotReloaded! This might cause instability to your server.");
             _settings.GameSettingsOnMapStart();

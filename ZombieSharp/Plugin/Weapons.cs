@@ -1,20 +1,38 @@
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
+using CounterStrikeSharp.API.Core.Capabilities;
 using CounterStrikeSharp.API.Modules.Admin;
 using CounterStrikeSharp.API.Modules.Commands;
-using CounterStrikeSharp.API.Modules.Menu;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using ZombieSharp.Models;
+using MenuManager;
 
 namespace ZombieSharp.Plugin;
 
-public class Weapons(ZombieSharp core, ILogger<ZombieSharp> logger)
+public class Weapons
 {
-    private readonly ZombieSharp _core = core;
-    private readonly ILogger<ZombieSharp> _logger = logger;
+    private readonly ZombieSharp _core;
+    private readonly ILogger<Weapons> _logger;
+    private readonly IMenuApi? _menuApi;
+    private readonly PluginCapability<IMenuApi?> _menuCapability = new("menu:nfcore");
     public static Dictionary<string, WeaponAttribute>? WeaponsConfig = null;
-    bool weaponCommandInitialized = false;
+    private bool weaponCommandInitialized = false;
+
+    public Weapons(ZombieSharp core, ILogger<Weapons> logger)
+    {
+        _core = core;
+        _logger = logger;
+        _menuApi = _menuCapability.Get();
+        if (_menuApi == null)
+        {
+            _logger.LogError("[Weapons] MenuManager API not found. Center menus unavailable. Ensure MenuManager.dll is loaded.");
+        }
+        else
+        {
+            _logger.LogInformation("[Weapons] MenuManager API successfully loaded. Version: {0}", typeof(IMenuApi).Assembly.GetName().Version);
+        }
+    }
 
     public void WeaponOnLoad()
     {
@@ -24,15 +42,12 @@ public class Weapons(ZombieSharp core, ILogger<ZombieSharp> logger)
 
     public void WeaponsOnMapStart()
     {
-        // make sure this one is null.
         WeaponsConfig = null;
-
-        // initial weapon config data
         WeaponsConfig = new Dictionary<string, WeaponAttribute>();
 
         var configPath = Path.Combine(ZombieSharp.ConfigPath, "weapons.jsonc");
 
-        if(!File.Exists(configPath))
+        if (!File.Exists(configPath))
         {
             _logger.LogCritical("[WeaponsOnMapStart] Couldn't find a weapons.jsonc file!");
             return;
@@ -40,42 +55,36 @@ public class Weapons(ZombieSharp core, ILogger<ZombieSharp> logger)
 
         _logger.LogInformation("[WeaponsOnMapStart] Load Weapon Config file.");
 
-        // we get data from jsonc file.
         WeaponsConfig = JsonConvert.DeserializeObject<Dictionary<string, WeaponAttribute>>(File.ReadAllText(configPath));
 
-        // we create weapon purchase command here.
         IntialWeaponPurchaseCommand();
     }
 
     public void IntialWeaponPurchaseCommand()
     {
-        // if it's not enabled or null then we don't have to.
-        if(!GameSettings.Settings?.WeaponPurchaseEnable ?? false)
+        if (!(GameSettings.Settings?.WeaponPurchaseEnable ?? false))
         {
-            // at least tell them that this is disable.
             _logger.LogInformation("[IntialWeaponPurchaseCommand] Purchasing is disabled");
             return;
         }
 
-        // if this part has been done before don't do it again.
-        if(weaponCommandInitialized)
+        if (weaponCommandInitialized)
             return;
 
-        // safety first.
-        if(WeaponsConfig == null)
+        if (WeaponsConfig == null)
         {
             _logger.LogError("[IntialWeaponPurchaseCommand] Weapon Configs is null!");
             return;
         }
 
-        foreach(var weapon in WeaponsConfig.Values)
+        foreach (var weapon in WeaponsConfig.Values)
         {
-            if(weapon.PurchaseCommand == null || weapon.PurchaseCommand.Count <= 0)
+            if (weapon.PurchaseCommand == null || weapon.PurchaseCommand.Count <= 0)
                 continue;
 
-            foreach(var command in weapon.PurchaseCommand)
+            foreach (var command in weapon.PurchaseCommand)
             {
-                if(string.IsNullOrEmpty(command))
+                if (string.IsNullOrEmpty(command))
                     continue;
 
                 _core.AddCommand(command, $"Weapon {weapon.WeaponName} Purchase Command", WeaponPurchaseCommand);
@@ -88,18 +97,18 @@ public class Weapons(ZombieSharp core, ILogger<ZombieSharp> logger)
     [RequiresPermissions("@css/slay")]
     public void WeaponRestrictCommand(CCSPlayerController? client, CommandInfo info)
     {
-        if(WeaponsConfig == null)
+        if (WeaponsConfig == null)
         {
             _logger.LogError("[WeaponRestrictCommand] WeaponsConfig is null!");
             return;
         }
 
-        if(info.ArgCount > 1)
+        if (info.ArgCount > 1)
         {
             var weaponname = info.GetArg(1);
             var weapon = GetWeaponAttributeByName(weaponname);
 
-            if(weapon == null)
+            if (weapon == null)
             {
                 info.ReplyToCommand($" {_core.Localizer["Prefix"]} {_core.Localizer["Weapon.NotFound", weaponname]}");
                 return;
@@ -110,40 +119,54 @@ public class Weapons(ZombieSharp core, ILogger<ZombieSharp> logger)
             return;
         }
 
-        if(client == null)
+        if (client == null)
             return;
 
-        var menu = new ChatMenu($" {_core.Localizer["Prefix"]} {_core.Localizer["Restrict.MainMenu"]}");
-        
-        foreach(var weapon in WeaponsConfig)
+        if (_menuApi == null)
         {
-            menu.AddMenuOption(weapon.Value.WeaponName!, (client, option) => 
-            {
-                weapon.Value.Restrict = true;
-                Server.PrintToChatAll($" {_core.Localizer["Prefix"]} {_core.Localizer["Restrict.Weapon", weapon.Value.WeaponName!]}");
-                MenuManager.CloseActiveMenu(client);
-            }, 
-            weapon.Value.Restrict);
+            _logger.LogError("[WeaponRestrictCommand] MenuManager API unavailable for player {0}.", client.PlayerName);
+            client.PrintToChat($" {_core.Localizer["Prefix"]} {_core.Localizer["Core.MenuUnavailable"]}");
+            return;
         }
-        menu.ExitButton = true;
-        MenuManager.OpenChatMenu(client, menu);
+
+        _logger.LogInformation("[WeaponRestrictCommand] Opening center menu for player {0}", client.PlayerName);
+        try
+        {
+            var menu = _menuApi.GetMenu($" {_core.Localizer["Prefix"]} {_core.Localizer["Restrict.MainMenu"]}");
+            foreach (var weapon in WeaponsConfig)
+            {
+                menu.AddMenuOption(weapon.Value.WeaponName!, (player, option) =>
+                {
+                    weapon.Value.Restrict = true;
+                    Server.PrintToChatAll($" {_core.Localizer["Prefix"]} {_core.Localizer["Restrict.Weapon", weapon.Value.WeaponName!]}");
+                    _menuApi.CloseMenu(player);
+                }, weapon.Value.Restrict);
+            }
+            menu.ExitButton = true;
+            menu.Open(client);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("[WeaponRestrictCommand] Failed to open center menu for player {0}: {1}", client.PlayerName, ex.Message);
+            client.PrintToChat($" {_core.Localizer["Prefix"]} {_core.Localizer["Core.MenuError"]}");
+        }
     }
 
     [RequiresPermissions("@css/slay")]
     public void WeaponUnrestrictCommand(CCSPlayerController? client, CommandInfo info)
     {
-        if(WeaponsConfig == null)
+        if (WeaponsConfig == null)
         {
-            _logger.LogError("[WeaponRestrictCommand] WeaponsConfig is null!");
+            _logger.LogError("[WeaponUnrestrictCommand] WeaponsConfig is null!");
             return;
         }
 
-        if(info.ArgCount > 1)
+        if (info.ArgCount > 1)
         {
             var weaponname = info.GetArg(1);
             var weapon = GetWeaponAttributeByName(weaponname);
 
-            if(weapon == null)
+            if (weapon == null)
             {
                 info.ReplyToCommand($" {_core.Localizer["Prefix"]} {_core.Localizer["Weapon.NotFound"]}");
                 return;
@@ -154,170 +177,163 @@ public class Weapons(ZombieSharp core, ILogger<ZombieSharp> logger)
             return;
         }
 
-        if(client == null)
+        if (client == null)
             return;
 
-        var menu = new ChatMenu($" {_core.Localizer["Prefix"]} {_core.Localizer["Unrestrict.MainMenu"]}");
-        
-        foreach(var weapon in WeaponsConfig)
+        if (_menuApi == null)
         {
-            menu.AddMenuOption(weapon.Value.WeaponName!, (client, option) => 
-            {
-                weapon.Value.Restrict = false;
-                Server.PrintToChatAll($" {_core.Localizer["Prefix"]} {_core.Localizer["Unrestrict.Weapon", weapon.Value.WeaponName!]}");
-                MenuManager.CloseActiveMenu(client);
-            }, 
-            !weapon.Value.Restrict);
+            _logger.LogError("[WeaponUnrestrictCommand] MenuManager API unavailable for player {0}.", client.PlayerName);
+            client.PrintToChat($" {_core.Localizer["Prefix"]} {_core.Localizer["Core.MenuUnavailable"]}");
+            return;
         }
-        menu.ExitButton = true;
-        MenuManager.OpenChatMenu(client, menu);
+
+        _logger.LogInformation("[WeaponUnrestrictCommand] Opening center menu for player {0}", client.PlayerName);
+        try
+        {
+            var menu = _menuApi.GetMenu($" {_core.Localizer["Prefix"]} {_core.Localizer["Unrestrict.MainMenu"]}");
+            foreach (var weapon in WeaponsConfig)
+            {
+                menu.AddMenuOption(weapon.Value.WeaponName!, (player, option) =>
+                {
+                    weapon.Value.Restrict = false;
+                    Server.PrintToChatAll($" {_core.Localizer["Prefix"]} {_core.Localizer["Unrestrict.Weapon", weapon.Value.WeaponName!]}");
+                    _menuApi.CloseMenu(player);
+                }, !weapon.Value.Restrict);
+            }
+            menu.ExitButton = true;
+            menu.Open(client);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("[WeaponUnrestrictCommand] Failed to open center menu for player {0}: {1}", client.PlayerName, ex.Message);
+            client.PrintToChat($" {_core.Localizer["Prefix"]} {_core.Localizer["Core.MenuError"]}");
+        }
     }
 
     [CommandHelper(0, "", CommandUsage.CLIENT_ONLY)]
     public void WeaponPurchaseCommand(CCSPlayerController? client, CommandInfo info)
     {
-        // args 0 is basically command string.
         var command = info.GetArg(0);
         var weaponAttribute = WeaponsConfig?.Where(weapon => weapon.Value.PurchaseCommand!.Contains(command)).FirstOrDefault().Value;
 
-        if(weaponAttribute != null && client != null)
+        if (weaponAttribute != null && client != null)
             PurchaseWeapon(client, weaponAttribute);
     }
 
     public void PurchaseWeapon(CCSPlayerController client, WeaponAttribute attribute)
     {
-        // if not enable then we don't have to proceed any further.
-        if(!GameSettings.Settings?.WeaponPurchaseEnable ?? false)
+        if (!(GameSettings.Settings?.WeaponPurchaseEnable ?? false))
             return;
 
-        // double check for possible
-        if(attribute == null || client == null)
+        if (attribute == null || client == null)
             return;
 
-        // if not alive.
-        if(!Utils.IsPlayerAlive(client))
+        if (!Utils.IsPlayerAlive(client))
         {
             client.PrintToChat($" {_core.Localizer["Prefix"]} {_core.Localizer["Core.MustBeAlive"]}");
             return;
         }
 
-        // if is zombie
-        if(Infect.IsClientInfect(client))
+        if (Infect.IsClientInfect(client))
         {
             client.PrintToChat($" {_core.Localizer["Prefix"]} {_core.Localizer["Core.MustBeHuman"]}");
             return;
         }
 
-        // this check for buyzone if enable.
         var buyzone = GameSettings.Settings?.WeaponBuyZoneOnly ?? false;
-
-        if(buyzone && !Utils.IsClientInBuyZone(client))
+        if (buyzone && !Utils.IsClientInBuyZone(client))
         {
-            client.PrintToChat($" {_core.Localizer["Prefix"]} {_core.Localizer["Weapon.BuyZoneOnly"]}");
+            client.PrintToChat($" {_core.Localizer["Prefix"]} {_core.Localizer["Core.BuyZoneOnly"]}");
             return;
         }
 
-        // if it's restricted
-        if(IsRestricted(attribute.WeaponEntity!))
+        if (IsRestricted(attribute.WeaponEntity!))
         {
             client.PrintToChat($" {_core.Localizer["Prefix"]} {_core.Localizer["Weapon.IsRestricted", attribute.WeaponName!]}");
-            return; 
+            return;
         }
 
-        // check their cash in account
-        if(client.InGameMoneyServices?.Account < attribute.Price)
+        if (client.InGameMoneyServices?.Account < attribute.Price)
         {
             client.PrintToChat($" {_core.Localizer["Prefix"]} {_core.Localizer["Weapon.NotEnoughCash"]}");
             return;
         }
 
-        // Max Purchase section, will be added later.
-        if(attribute.MaxPurchase != 0)
+        if (attribute.MaxPurchase != 0)
         {
             var count = 0;
 
-            if(PlayerData.PlayerPurchaseCount == null)
+            if (PlayerData.PlayerPurchaseCount == null)
             {
                 _logger.LogError("[PurchaseWeapon] Player Purchase count is null!");
                 return;
             }
 
-            if(!PlayerData.PlayerPurchaseCount.ContainsKey(client))
+            if (!PlayerData.PlayerPurchaseCount.ContainsKey(client))
             {
                 _logger.LogError("[PurchaseWeapon] Player {name} is not in purchase count data, so create a new one", client.PlayerName);
                 PlayerData.PlayerPurchaseCount.Add(client, new());
             }
 
-            if(PlayerData.PlayerPurchaseCount[client].WeaponCount == null)
+            if (PlayerData.PlayerPurchaseCount[client].WeaponCount == null)
             {
                 _logger.LogError("[PurchaseWeapon] Player {name} Purchase data is null", client.PlayerName);
                 return;
             }
 
-            if(PlayerData.PlayerPurchaseCount[client].WeaponCount!.ContainsKey(attribute.WeaponEntity!))
+            if (PlayerData.PlayerPurchaseCount[client].WeaponCount!.ContainsKey(attribute.WeaponEntity!))
                 count = PlayerData.PlayerPurchaseCount[client].WeaponCount![attribute.WeaponEntity!];
 
-            if(count >= attribute.MaxPurchase)
+            if (count >= attribute.MaxPurchase)
             {
                 client.PrintToChat($" {_core.Localizer["Prefix"]} {_core.Localizer["Weapon.ReachMaxPurchase", attribute.MaxPurchase]}");
                 return;
             }
         }
-        
-        // we need to force drop weapon first before make an purchase
-        var weapons = client.PlayerPawn.Value?.WeaponServices?.MyWeapons;
 
-        if(weapons == null)
+        var weapons = client.PlayerPawn.Value?.WeaponServices?.MyWeapons;
+        if (weapons == null)
         {
             _logger.LogError("[PurchaseWeapon] {0} Weapon service is somehow null", client.PlayerName);
             return;
         }
 
-        foreach(var weapon in weapons)
+        foreach (var weapon in weapons)
         {
             var slot = (int)weapon.Value!.GetVData<CCSWeaponBaseVData>()!.GearSlot;
-
-            // for primary and secondary only.
-            if(slot > 2)
+            if (slot > 2)
                 continue;
 
-            if(slot == attribute.WeaponSlot)
+            if (slot == attribute.WeaponSlot)
             {
-                // drop this weapon then break
                 Utils.DropWeaponByDesignName(client, weapon.Value.DesignerName);
                 break;
             }
         }
 
-        Server.NextWorldUpdate(() => 
+        Server.NextWorldUpdate(() =>
         {
-            // we give weapon to them this part can't be null unless server manager fucked it up.
-            if(attribute.WeaponEntity == "item_kevlar")
+            if (attribute.WeaponEntity == "item_kevlar")
             {
                 client.PlayerPawn.Value!.ArmorValue = 100;
                 Utilities.SetStateChanged(client.PlayerPawn.Value, "CCSPlayerPawn", "m_ArmorValue");
             }
-            
             else
+            {
                 client.GiveNamedItem(attribute.WeaponEntity!);
+            }
 
-            // update purchase history
-            if(PlayerData.PlayerPurchaseCount![client].WeaponCount!.ContainsKey(attribute.WeaponEntity!))
+            if (PlayerData.PlayerPurchaseCount![client].WeaponCount!.ContainsKey(attribute.WeaponEntity!))
                 PlayerData.PlayerPurchaseCount![client].WeaponCount![attribute.WeaponEntity!]++;
-
             else
                 PlayerData.PlayerPurchaseCount?[client].WeaponCount?.Add(attribute.WeaponEntity!, 1);
 
             var purchaseCount = PlayerData.PlayerPurchaseCount![client].WeaponCount![attribute.WeaponEntity!];
-
             var message = $" {_core.Localizer["Prefix"]} {_core.Localizer["Weapon.PurchaseSuccess", attribute.WeaponName!]}";
-
-            if(attribute.MaxPurchase > 0)
+            if (attribute.MaxPurchase > 0)
                 message += $" {_core.Localizer["Weapon.PurchaseCount", attribute.MaxPurchase - purchaseCount, attribute.MaxPurchase]}";
 
             client.PrintToChat($"{message}");
-
-            // updated their cash.
             client.InGameMoneyServices!.Account -= attribute.Price;
             Utilities.SetStateChanged(client, "CCSPlayerController", "m_pInGameMoneyServices");
         });
@@ -325,12 +341,11 @@ public class Weapons(ZombieSharp core, ILogger<ZombieSharp> logger)
 
     public static bool IsRestricted(string weaponentity)
     {
-        if(WeaponsConfig == null)
+        if (WeaponsConfig == null)
             return false;
 
         var weapon = GetWeaponAttributeByEntityName(weaponentity);
-
-        if(weapon == null)
+        if (weapon == null)
             return false;
 
         return weapon.Restrict;
@@ -338,7 +353,7 @@ public class Weapons(ZombieSharp core, ILogger<ZombieSharp> logger)
 
     public static WeaponAttribute? GetWeaponAttributeByEntityName(string? weaponentity)
     {
-        if(WeaponsConfig == null)
+        if (WeaponsConfig == null)
             return null;
 
         return WeaponsConfig.Where(data => data.Value.WeaponEntity == weaponentity).FirstOrDefault().Value;
@@ -346,7 +361,7 @@ public class Weapons(ZombieSharp core, ILogger<ZombieSharp> logger)
 
     public static WeaponAttribute? GetWeaponAttributeByName(string? weapon)
     {
-        if(WeaponsConfig == null)
+        if (WeaponsConfig == null)
             return null;
 
         return WeaponsConfig.Where(data => string.Equals(data.Value.WeaponName, weapon, StringComparison.OrdinalIgnoreCase)).FirstOrDefault().Value;
