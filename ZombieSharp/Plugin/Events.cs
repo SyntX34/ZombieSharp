@@ -7,19 +7,34 @@ using static CounterStrikeSharp.API.Core.Listeners;
 
 namespace ZombieSharp.Plugin;
 
-public class Events(ZombieSharp core, Infect infect, GameSettings settings, Classes classes, Weapons weapons, Teleport teleport, Respawn respawn, Napalm napalm, ConVars convar, HitGroup hitgroup, ILogger<ZombieSharp> logger)
+public class Events
 {
-    private readonly ZombieSharp _core = core;
-    private readonly Infect _infect = infect;
-    private readonly Classes _classes = classes;
-    private readonly GameSettings _settings = settings;
-    private readonly Weapons _weapons = weapons;
-    private readonly ILogger<ZombieSharp> _logger = logger;
-    private readonly Teleport _teleport = teleport;
-    private readonly Napalm _napalm = napalm;
-    private readonly Respawn _respawn = respawn;
-    private readonly ConVars _convar = convar;
-    private readonly HitGroup _hitgroup = hitgroup;
+    private readonly ZombieSharp _core;
+    private readonly Infect _infect;
+    private readonly Classes _classes;
+    private readonly GameSettings _settings;
+    private readonly Weapons _weapons;
+    private readonly ILogger<ZombieSharp> _logger;
+    private readonly Teleport _teleport;
+    private readonly Napalm _napalm;
+    private readonly Respawn _respawn;
+    private readonly ConVars _convar;
+    private readonly HitGroup _hitgroup;
+
+    public Events(ZombieSharp core, Infect infect, GameSettings settings, Classes classes, Weapons weapons, Teleport teleport, Respawn respawn, Napalm napalm, ConVars convar, HitGroup hitgroup, ILogger<ZombieSharp> logger)
+    {
+        _core = core;
+        _infect = infect;
+        _settings = settings;
+        _classes = classes;
+        _weapons = weapons;
+        _logger = logger;
+        _teleport = teleport;
+        _napalm = napalm;
+        _respawn = respawn;
+        _convar = convar;
+        _hitgroup = hitgroup;
+    }
 
     public void EventOnLoad()
     {
@@ -50,7 +65,6 @@ public class Events(ZombieSharp core, Infect infect, GameSettings settings, Clas
         _core.DeregisterEventHandler<EventPlayerHurt>(OnPlayerHurt);
         _core.DeregisterEventHandler<EventPlayerSpawn>(OnPlayerSpawn);
         _core.DeregisterEventHandler<EventRoundFreezeEnd>(OnRoundFreezeEnd);
-        _core.DeregisterEventHandler<EventRoundStart>(OnRoundStart);
         _core.DeregisterEventHandler<EventCsPreRestart>(OnPreRoundStart);
         _core.DeregisterEventHandler<EventPlayerDeath>(OnPlayerDeath);
         _core.DeregisterEventHandler<EventWarmupEnd>(OnWarmupEnd);
@@ -158,7 +172,9 @@ public class Events(ZombieSharp core, Infect infect, GameSettings settings, Clas
         if (Infect.IsClientInfect(client))
             Utils.EmitSound(client, "zr.amb.zombie_die");
 
-        _respawn.RespawnOnPlayerDeath(client);
+        // Detect suicide (killed by world, e.g., fall damage)
+        bool isSuicide = @event.Attacker == null || @event.Attacker?.Index == 0;
+        _respawn.RespawnOnPlayerDeath(client, isSuicide);
         HealthRegen.RegenOnPlayerDeath(client);
 
         return HookResult.Continue;
@@ -179,22 +195,33 @@ public class Events(ZombieSharp core, Infect infect, GameSettings settings, Clas
 
         if (Infect.InfectHasStarted())
         {
-            var team = GameSettings.Settings?.RespawTeam ?? 0;
-
-            if (team == 0)
+            // Check if this is a suicide respawn and SuicideRespawnZM is enabled
+            if (Respawn.WasSuicideDeath(client) && (GameSettings.Settings?.SuicideRespawnZM ?? false))
+            {
                 _infect.InfectClient(client);
-            else if (team == 1)
-                _infect.HumanizeClient(client);
+                Respawn.ClearSuicideDeath(client);
+                _logger.LogInformation("[OnPlayerSpawn] Forced zombie respawn for suicide death of {0} (SteamID: {1})", client.PlayerName, client.SteamID);
+            }
             else
             {
-                if (!(PlayerData.ZombiePlayerData?[client].Zombie ?? false))
+                var team = GameSettings.Settings?.RespawTeam ?? 0;
+                if (team == 0)
+                    _infect.InfectClient(client);
+                else if (team == 1)
                     _infect.HumanizeClient(client);
                 else
-                    _infect.InfectClient(client);
+                {
+                    if (!(PlayerData.ZombiePlayerData?[client].Zombie ?? false))
+                        _infect.HumanizeClient(client);
+                    else
+                        _infect.InfectClient(client);
+                }
             }
         }
         else
+        {
             _infect.HumanizeClient(client);
+        }
 
         Utils.RefreshPurchaseCount(client);
         _core.AddTimer(0.2f, () => _teleport.TeleportOnPlayerSpawn(client));
@@ -211,7 +238,7 @@ public class Events(ZombieSharp core, Infect infect, GameSettings settings, Clas
         if (isBot)
             return HookResult.Continue;
 
-        if (!GameSettings.Settings?.AllowRespawnJoinLate ?? false)
+        if (!(GameSettings.Settings?.AllowRespawnJoinLate ?? false))
             return HookResult.Continue;
 
         if (team > 1)

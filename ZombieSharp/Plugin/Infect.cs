@@ -114,6 +114,7 @@ public class Infect(ZombieSharp core, ILogger<ZombieSharp> logger, Classes class
             info.ReplyToCommand($" {_core.Localizer["Prefix"]} {_core.Localizer["Human.Success", target.FirstOrDefault()!.PlayerName]}");
     }
 
+    /*
     public void InfectOnRoundFreezeEnd()
     {
         // kill timer just in case
@@ -174,6 +175,67 @@ public class Infect(ZombieSharp core, ILogger<ZombieSharp> logger, Classes class
                 soundCounter--;
             }
         }, TimerFlags.REPEAT|TimerFlags.STOP_ON_MAPCHANGE);
+    }
+    */
+
+    public void InfectOnRoundFreezeEnd()
+    {
+        // Kill timer just in case
+        InfectKillInfectionTimer();
+
+        if (GameSettings.Settings == null)
+        {
+            _logger.LogCritical("[InfectOnRoundFreezeEnd] Game Settings is null!");
+            _infectCountNumber = 15;
+        }
+        else
+        {
+            _infectCountNumber = (int)GameSettings.Settings.FirstInfectionTimer;
+        }
+
+        // Start the mother zombie timer
+        _firstInfection = _core.AddTimer(_infectCountNumber + 1, InfectMotherZombie, TimerFlags.STOP_ON_MAPCHANGE);
+
+        // Initialize sound counter for the last 10 seconds
+        int soundCounter = Math.Min(_infectCountNumber, 10);
+
+        _infectCountTimer = _core.AddTimer(1f, () =>
+        {
+            if (_infectCountNumber < 0)
+            {
+                InfectKillInfectionTimer();
+                return;
+            }
+
+            // Display countdown
+            Utils.PrintToCenterAll($" {_core.Localizer["Infect.Countdown", _infectCountNumber]}");
+
+            // Play sound when soundCounter is 10 to 1
+            if (soundCounter >= 1 && soundCounter <= 10)
+            {
+                string soundPath = $"sounds/zr/countdown/{soundCounter}.vsnd_c";
+                foreach (var player in Utilities.GetPlayers())
+                {
+                    if (player == null || !player.IsValid || player.IsBot)
+                        continue;
+                    try
+                    {
+                        player.ExecuteClientCommand($"play {soundPath}");
+                        _logger.LogInformation("[InfectOnRoundFreezeEnd] Played countdown sound {0} for player {1} at {2} seconds", soundPath, player.PlayerName, _infectCountNumber);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError("[InfectOnRoundFreezeEnd] Failed to play sound {0} for player {1}: {2}", soundPath, player.PlayerName, ex.Message);
+                    }
+                }
+                _logger.LogInformation("[InfectOnRoundFreezeEnd] Played countdown sound {0} at {1} seconds (soundCounter: {2})", soundPath, _infectCountNumber, soundCounter);
+            }
+            _infectCountNumber--;
+            if (soundCounter > 0)
+            {
+                soundCounter--;
+            }
+        }, TimerFlags.REPEAT | TimerFlags.STOP_ON_MAPCHANGE);
     }
 
     public void InfectKillInfectionTimer()

@@ -13,7 +13,7 @@ namespace ZombieSharp;
 public partial class ZombieSharp : BasePlugin
 {
     public override string ModuleName => "ZombieSharp";
-    public override string ModuleVersion => "2.3.0";
+    public override string ModuleVersion => "2.3.1 [Hotfix]";
     public override string ModuleAuthor => "Oylsister, SyntX";
     public override string ModuleDescription => "Infection/survival style gameplay for CS2 in C#";
 

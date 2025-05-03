@@ -6,46 +6,59 @@ using ZombieSharp.Models;
 
 namespace ZombieSharp.Plugin;
 
-public class ConVars(ZombieSharp core, Weapons weapons, ILogger<ZombieSharp> logger)
+public class ConVars
 {
-    private ZombieSharp _core = core;
-    private readonly Weapons _weapon = weapons;
-    private readonly ILogger<ZombieSharp> _logger = logger;
+    private readonly ZombieSharp _core;
+    private readonly Weapons _weapon;
+    private readonly ILogger<ZombieSharp> _logger;
+
+    public ConVars(ZombieSharp core, Weapons weapons, ILogger<ZombieSharp> logger)
+    {
+        _core = core;
+        _weapon = weapons;
+        _logger = logger;
+    }
 
     public void ConVarOnLoad()
     {
-        if(GameSettings.Settings == null)
+        if (GameSettings.Settings == null)
         {
             _logger.LogError("[ConVarOnLoad] Game Settings is null! ConVar will not proceed any longer!");
             return;
         }
 
         // we hook convar changed and apply it to our GameSettings.
-        _core.CVAR_FirstInfectionTimer.ValueChanged += (sender, value) => {
+        _core.CVAR_FirstInfectionTimer.ValueChanged += (sender, value) =>
+        {
             GameSettings.Settings.FirstInfectionTimer = value;
         };
 
-        _core.CVAR_MotherZombieRatio.ValueChanged += (sender, value) => {
+        _core.CVAR_MotherZombieRatio.ValueChanged += (sender, value) =>
+        {
             GameSettings.Settings.MotherZombieRatio = value;
         };
 
-        _core.CVAR_MotherZombieTeleport.ValueChanged += (sender, value) => {
+        _core.CVAR_MotherZombieTeleport.ValueChanged += (sender, value) =>
+        {
             GameSettings.Settings.MotherZombieTeleport = value;
         };
 
-        _core.CVAR_CashOnDamage.ValueChanged += (sender, value) => {
+        _core.CVAR_CashOnDamage.ValueChanged += (sender, value) =>
+        {
             GameSettings.Settings.CashOnDamage = value;
         };
 
-        _core.CVAR_TimeoutWinner.ValueChanged += (sender, value) => {
+        _core.CVAR_TimeoutWinner.ValueChanged += (sender, value) =>
+        {
             GameSettings.Settings.TimeoutWinner = value;
         };
 
         // class section
-        _core.CVAR_DefaultHuman.ValueChanged += (sender, value) => {
+        _core.CVAR_DefaultHuman.ValueChanged += (sender, value) =>
+        {
             GameSettings.Settings.DefaultHumanBuffer = value;
 
-            if(!Classes.ClassesConfig!.ContainsKey(value))
+            if (!Classes.ClassesConfig!.ContainsKey(value))
             {
                 _logger.LogCritical("[ConVarOnLoad] Couldn't get classes \"{0}\" from playerclasses.jsonc", value);
                 return;
@@ -54,10 +67,11 @@ public class ConVars(ZombieSharp core, Weapons weapons, ILogger<ZombieSharp> log
             Classes.DefaultHuman = Classes.ClassesConfig[value];
         };
 
-        _core.CVAR_DefaultZombie.ValueChanged += (sender, value) => {
+        _core.CVAR_DefaultZombie.ValueChanged += (sender, value) =>
+        {
             GameSettings.Settings.DefaultZombieBuffer = value;
 
-            if(!Classes.ClassesConfig!.ContainsKey(value))
+            if (!Classes.ClassesConfig!.ContainsKey(value))
             {
                 _logger.LogCritical("[ConVarOnLoad] Couldn't get classes \"{0}\" from playerclasses.jsonc", value);
                 return;
@@ -66,10 +80,11 @@ public class ConVars(ZombieSharp core, Weapons weapons, ILogger<ZombieSharp> log
             Classes.DefaultZombie = Classes.ClassesConfig[value];
         };
 
-        _core.CVAR_MotherZombie.ValueChanged += (sender, value) => {
+        _core.CVAR_MotherZombie.ValueChanged += (sender, value) =>
+        {
             GameSettings.Settings.MotherZombieBuffer = value;
 
-            if(!Classes.ClassesConfig!.ContainsKey(value))
+            if (!Classes.ClassesConfig!.ContainsKey(value))
             {
                 _logger.LogCritical("[ConVarOnLoad] Couldn't get classes \"{0}\" from playerclasses.jsonc", value);
                 return;
@@ -78,92 +93,140 @@ public class ConVars(ZombieSharp core, Weapons weapons, ILogger<ZombieSharp> log
             Classes.MotherZombie = Classes.ClassesConfig[value];
         };
 
-        _core.CVAR_RandomClassesOnConnect.ValueChanged += (sender, value) => {
+        _core.CVAR_RandomClassesOnConnect.ValueChanged += (sender, value) =>
+        {
             GameSettings.Settings.RandomClassesOnConnect = value;
         };
 
-        _core.CVAR_RandomClassesOnSpawn.ValueChanged += (sender, value) => {
+        _core.CVAR_RandomClassesOnSpawn.ValueChanged += (sender, value) =>
+        {
             GameSettings.Settings.RandomClassesOnSpawn = value;
         };
 
-        _core.CVAR_AllowSavingClass.ValueChanged += (sender, value) => {
+        _core.CVAR_AllowSavingClass.ValueChanged += (sender, value) =>
+        {
             GameSettings.Settings.AllowSavingClass = value;
         };
 
-        _core.CVAR_AllowChangeClass.ValueChanged += (sender, value) => {
+        _core.CVAR_AllowChangeClass.ValueChanged += (sender, value) =>
+        {
             GameSettings.Settings.AllowChangeClass = value;
         };
 
         // weapon section
-        _core.CVAR_WeaponPurchaseEnable.ValueChanged += (sender, value) => {
+        _core.CVAR_WeaponPurchaseEnable.ValueChanged += (sender, value) =>
+        {
             GameSettings.Settings.WeaponPurchaseEnable = value;
             _logger.LogInformation("[ConVarChanged] zs_weapon_purchase_enable changed to {0}", value);
             _weapon.IntialWeaponPurchaseCommand();
         };
 
-        _core.CVAR_WeaponRestrictEnable.ValueChanged += (sender, value) => {
+        _core.CVAR_WeaponRestrictEnable.ValueChanged += (sender, value) =>
+        {
             GameSettings.Settings.WeaponRestrictEnable = value;
         };
 
-        _core.CVAR_WeaponBuyZoneOnly.ValueChanged += (sender, value) => {
+        _core.CVAR_WeaponBuyZoneOnly.ValueChanged += (sender, value) =>
+        {
             GameSettings.Settings.WeaponBuyZoneOnly = value;
         };
 
         // Teleport
-        _core.CVAR_TeleportAllow.ValueChanged += (sender, value) => {
+        _core.CVAR_TeleportAllow.ValueChanged += (sender, value) =>
+        {
             GameSettings.Settings.TeleportAllow = value;
         };
 
         // respawn
-        _core.CVAR_RespawnEnable.ValueChanged += (sender, value) => {
+        _core.CVAR_RespawnEnable.ValueChanged += (sender, value) =>
+        {
             GameSettings.Settings.RespawnEnable = value;
 
             _logger.LogInformation("[ConVarChanged] zs_respawn_enable changed to {0}", value);
             Server.PrintToChatAll($" {_core.Localizer["Prefix"]} zs_respawn_enable changed to {value}");
 
-            _core.AddTimer(1.0f, () => {
-                foreach(var player in Utilities.GetPlayers())
+            _core.AddTimer(1.0f, () =>
+            {
+                foreach (var player in Utilities.GetPlayers())
                 {
-                    if(player == null)
+                    if (player == null)
                         continue;
 
-                    if(Utils.IsPlayerAlive(player))
+                    if (Utils.IsPlayerAlive(player))
                         continue;
 
-                    if(player.Team == CsTeam.None || player.Team == CsTeam.Spectator)
+                    if (player.Team == CsTeam.None || player.Team == CsTeam.Spectator)
                         continue;
 
                     Respawn.RespawnClient(player);
                 }
             });
-
         };
-        _core.CVAR_RespawnDelay.ValueChanged += (sender, value) => {
+
+        _core.CVAR_RespawnDelay.ValueChanged += (sender, value) =>
+        {
             GameSettings.Settings.RespawnDelay = value;
         };
-        _core.CVAR_AllowRespawnJoinLate.ValueChanged += (sender, value) => {
+
+        _core.CVAR_AllowRespawnJoinLate.ValueChanged += (sender, value) =>
+        {
             GameSettings.Settings.AllowRespawnJoinLate = value;
         };
-        _core.CVAR_RespawnTeam.ValueChanged += (sender, value) => {
+
+        _core.CVAR_RespawnTeam.ValueChanged += (sender, value) =>
+        {
             GameSettings.Settings.RespawTeam = value;
         };
 
+        _core.CVAR_SuicideRespawnZM.ValueChanged += (sender, value) =>
+        {
+            GameSettings.Settings.SuicideRespawnZM = value;
+
+            _logger.LogInformation("[ConVarChanged] zs_respawn_zombie_world changed to {0}", value);
+            Server.PrintToChatAll($" {_core.Localizer["Prefix"]} zs_respawn_zombie_world changed to {value}");
+
+            if (value)
+            {
+                _core.AddTimer(1.0f, () =>
+                {
+                    foreach (var player in Utilities.GetPlayers())
+                    {
+                        if (player == null || Utils.IsPlayerAlive(player) || player.Team == CsTeam.None || player.Team == CsTeam.Spectator)
+                            continue;
+
+                        if (Respawn.WasSuicideDeath(player))
+                        {
+                            _logger.LogInformation("[ConVarChanged] Respawning {0} (SteamID: {1}) as zombie due to suicide death", player.PlayerName, player.SteamID);
+                            Respawn.RespawnClient(player, isSuicide: true);
+                        }
+                    }
+                });
+            }
+        };
+
         // overlay stuff
-        _core.CVAR_HumanWinOverlayParticle.ValueChanged += (sender, value) => {
+        _core.CVAR_HumanWinOverlayParticle.ValueChanged += (sender, value) =>
+        {
             GameSettings.Settings.HumanWinOverlayParticle = value;
         };
-        _core.CVAR_HumanWinOverlayMaterial.ValueChanged += (sender, value) => {
+
+        _core.CVAR_HumanWinOverlayMaterial.ValueChanged += (sender, value) =>
+        {
             GameSettings.Settings.HumanWinOverlayMaterial = value;
         };
-        _core.CVAR_ZombieWinOverlayParticle.ValueChanged += (sender, value) => {
+
+        _core.CVAR_ZombieWinOverlayParticle.ValueChanged += (sender, value) =>
+        {
             GameSettings.Settings.ZombieWinOverlayParticle = value;
         };
-        _core.CVAR_ZombieWinOverlayMaterial.ValueChanged += (sender, value) => {
+
+        _core.CVAR_ZombieWinOverlayMaterial.ValueChanged += (sender, value) =>
+        {
             GameSettings.Settings.ZombieWinOverlayMaterial = value;
         };
 
         // create convar first.
-        _core.RegisterFakeConVars(typeof(ConVar));
+        _core.RegisterFakeConVars(typeof(ConVars));
     }
 
     public void ConVarExecuteOnMapStart(string mapname)
@@ -197,7 +260,6 @@ public class ConVars(ZombieSharp core, Weapons weapons, ILogger<ZombieSharp> log
         if (File.Exists(configPath))
             return;
 
-        
         _logger.LogInformation("[CreateExecuteFile] Creating {0}", configPath);
 
         var configFile = File.CreateText(configPath);
@@ -230,6 +292,7 @@ public class ConVars(ZombieSharp core, Weapons weapons, ILogger<ZombieSharp> log
         CreateConVarLine(configFile, _core.CVAR_RespawnDelay);
         CreateConVarLine(configFile, _core.CVAR_AllowRespawnJoinLate);
         CreateConVarLine(configFile, _core.CVAR_RespawnTeam);
+        CreateConVarLine(configFile, _core.CVAR_SuicideRespawnZM);
 
         CreateConVarLine(configFile, _core.CVAR_HumanWinOverlayParticle);
         CreateConVarLine(configFile, _core.CVAR_HumanWinOverlayMaterial);
@@ -238,10 +301,10 @@ public class ConVars(ZombieSharp core, Weapons weapons, ILogger<ZombieSharp> log
 
         configFile.Close();
     }
-    
+
     public void CreateConVarLine<T>(StreamWriter configFile, FakeConVar<T> fakeConVar) where T : IComparable<T>
     {
-        if(configFile == null)
+        if (configFile == null)
         {
             _logger.LogCritical("[CreateConVarLine] Config File is null");
             return;
@@ -255,7 +318,7 @@ public class ConVars(ZombieSharp core, Weapons weapons, ILogger<ZombieSharp> log
         configFile.WriteLine($"// -");
         configFile.WriteLine($"// Default: {value}");
         configFile.WriteLine($"{command} {value}");
-        // empty file.
+        // empty line.
         configFile.WriteLine();
     }
 }

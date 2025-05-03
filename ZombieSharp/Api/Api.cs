@@ -31,6 +31,6 @@ public class ZombieSharpInterface : IZombieSharpAPI
 
     public void ZS_RespawnClient(CCSPlayerController client)
     {
-        Respawn.RespawnClient(client);
+        Respawn.RespawnClient(client, isSuicide: false);
     }
 }

@@ -68,9 +68,41 @@ public class Weapons
         try
         {
             _logger.LogInformation("[SaveMarketData] Saving zmarket_data.jsonc to {0}", _marketDataPath);
-            var json = JsonConvert.SerializeObject(_marketData, Formatting.Indented);
+            MarketData existingData = new();
+            
+            // Load existing data if file exists
+            if (File.Exists(_marketDataPath))
+            {
+                try
+                {
+                    var existingJson = File.ReadAllText(_marketDataPath);
+                    existingData = JsonConvert.DeserializeObject<MarketData>(existingJson) ?? new MarketData();
+                    _logger.LogInformation("[SaveMarketData] Loaded existing zmarket_data.jsonc with {0} player entries.", existingData.Players.Count);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError("[SaveMarketData] Failed to load existing zmarket_data.jsonc for merging: {0}. Proceeding with current data.", ex.Message);
+                }
+            }
+
+            // Merge current _marketData.Players into existingData, updating or adding entries
+            foreach (var playerEntry in _marketData.Players)
+            {
+                if (existingData.Players.ContainsKey(playerEntry.Key))
+                {
+                    _logger.LogInformation("[SaveMarketData] Updating existing entry for SteamID {0}", playerEntry.Key);
+                }
+                else
+                {
+                    _logger.LogInformation("[SaveMarketData] Adding new entry for SteamID {0}", playerEntry.Key);
+                }
+                existingData.Players[playerEntry.Key] = playerEntry.Value;
+            }
+
+            // Serialize and save merged data
+            var json = JsonConvert.SerializeObject(existingData, Formatting.Indented);
             File.WriteAllText(_marketDataPath, json);
-            _logger.LogInformation("[SaveMarketData] Saved zmarket_data.jsonc with {0} player entries.", _marketData.Players.Count);
+            _logger.LogInformation("[SaveMarketData] Saved zmarket_data.jsonc with {0} player entries.", existingData.Players.Count);
         }
         catch (Exception ex)
         {
@@ -94,7 +126,9 @@ public class Weapons
                 ? _marketData.Players[steamId] 
                 : new PlayerMarketData();
             PlayerData.PlayerMarketData[client] = marketData;
+            _marketData.Players[steamId] = marketData; // Ensure _marketData is updated
             _logger.LogInformation("[OnClientPutInServer] Loaded market data for player {0} (SteamID: {1}).", client.PlayerName, steamId);
+            SaveMarketData(); // Save to ensure new player is persisted
         }
     }
 
@@ -262,7 +296,7 @@ public class Weapons
 
     private void SaveCurrentWeapons(CCSPlayerController client)
     {
-        _logger.LogInformation("[SaveCurrentWeapons] Saving weapons for {0}", client.PlayerName);
+        _logger.LogInformation("[SaveCurrentWeapons] Saving weapons for {0} (SteamID: {1})", client.PlayerName, client.SteamID);
         if (PlayerData.PlayerMarketData == null || !PlayerData.PlayerMarketData.ContainsKey(client))
         {
             _logger.LogError("[SaveCurrentWeapons] PlayerMarketData is null or missing for {0}!", client.PlayerName);
@@ -307,6 +341,14 @@ public class Weapons
         }
 
         var steamId = client.SteamID;
+        if (_marketData.Players.ContainsKey(steamId))
+        {
+            _logger.LogInformation("[SaveCurrentWeapons] Updating existing market data for SteamID {0}", steamId);
+        }
+        else
+        {
+            _logger.LogInformation("[SaveCurrentWeapons] Creating new market data for SteamID {0}", steamId);
+        }
         _marketData.Players[steamId] = marketData;
         SaveMarketData();
 
@@ -523,7 +565,7 @@ public class Weapons
 
     private void SaveWeaponToSetup(CCSPlayerController client, WeaponAttribute weapon)
     {
-        _logger.LogInformation("[SaveWeaponToSetup] Saving {0} to setup for {1}", weapon.WeaponName, client.PlayerName);
+        _logger.LogInformation("[SaveWeaponToSetup] Saving {0} to setup for {1} (SteamID: {2})", weapon.WeaponName, client.PlayerName, client.SteamID);
         if (PlayerData.PlayerMarketData == null || !PlayerData.PlayerMarketData.ContainsKey(client))
         {
             _logger.LogError("[SaveWeaponToSetup] PlayerMarketData is null or missing for {0}!", client.PlayerName);
@@ -545,6 +587,14 @@ public class Weapons
         }
 
         var steamId = client.SteamID;
+        if (_marketData.Players.ContainsKey(steamId))
+        {
+            _logger.LogInformation("[SaveWeaponToSetup] Updating existing market data for SteamID {0}", steamId);
+        }
+        else
+        {
+            _logger.LogInformation("[SaveWeaponToSetup] Creating new market data for SteamID {0}", steamId);
+        }
         _marketData.Players[steamId] = marketData;
         SaveMarketData();
 
