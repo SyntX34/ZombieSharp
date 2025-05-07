@@ -30,8 +30,13 @@ public partial class ZombieSharp
     public FakeConVar<bool> CVAR_AllowRespawnJoinLate = new("zs_respawn_allow_join_late", "Allowing player who join game late to spawn during the round", false, default, new RangeValidator<bool>(false, true));
     public FakeConVar<int> CVAR_RespawnTeam = new("zs_respawn_team", "Specify team to respawn with after death (0 = Zombie | 1 = Human | 2 = Player Team before death)", 0, default, new RangeValidator<int>(0, 2));
 
+    public FakeConVar<bool> CVAR_SuicideRespawnZM = new("zs_respawn_zombie_world", "Respawn those players who were killed by the world (0 = Off, 1 = On)", true, default, new RangeValidator<bool>(false, true));
+
     public FakeConVar<string> CVAR_HumanWinOverlayParticle = new("zs_human_overlay_particle", "Human win overlay particle path", string.Empty);
     public FakeConVar<string> CVAR_HumanWinOverlayMaterial = new("zs_human_overlay_material", "Human win overlay material path", string.Empty);
     public FakeConVar<string> CVAR_ZombieWinOverlayParticle = new("zs_zombie_overlay_particle", "Zombie win overlay particle path", string.Empty);
     public FakeConVar<string> CVAR_ZombieWinOverlayMaterial = new("zs_zombie_overlay_material", "Zombie win overlay material path", string.Empty);
+
+    public FakeConVar<bool> CVAR_EnableCountDownSound = new("zs_enable_countdown_sounds", "Enable countdown sounds? (0 - disable, 1 - Enable)", true, default, new RangeValidator<bool>(false, true));
+    public FakeConVar<string> CVAR_CountDownSoundPath = new("zs_countdown_sound_path", "Full path for countdown sounds", string.Empty);
 }

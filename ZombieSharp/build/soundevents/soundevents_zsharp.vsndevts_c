@@ -91,7 +91,7 @@
 		base = "zr.amb.base"
 		vsnd_files_track_01 = 
 		[
-			"sounds/zr/countdown/countdown1.vsnd"
+			"sounds/zr/countdown/1.vsnd"
 		]
 	}
 	countdown2 = 
@@ -99,7 +99,7 @@
 		base = "zr.amb.base"
 		vsnd_files_track_01 = 
 		[
-			"sounds/zr/countdown/countdown2.vsnd"
+			"sounds/zr/countdown/2.vsnd"
 		]
 	}
 	countdown3 = 
@@ -107,7 +107,7 @@
 		base = "zr.amb.base"
 		vsnd_files_track_01 = 
 		[
-			"sounds/zr/countdown/countdown3.vsnd"
+			"sounds/zr/countdown/3.vsnd"
 		]
 	}
 	countdown4 = 
@@ -115,7 +115,7 @@
 		base = "zr.amb.base"
 		vsnd_files_track_01 = 
 		[
-			"sounds/zr/countdown/countdown4.vsnd"
+			"sounds/zr/countdown/4.vsnd"
 		]
 	}
 	countdown5 = 
@@ -123,7 +123,7 @@
 		base = "zr.amb.base"
 		vsnd_files_track_01 = 
 		[
-			"sounds/zr/countdown/countdown5.vsnd"
+			"sounds/zr/countdown/5.vsnd"
 		]
 	}
 	countdown6 = 
@@ -131,7 +131,7 @@
 		base = "zr.amb.base"
 		vsnd_files_track_01 = 
 		[
-			"sounds/zr/countdown/countdown6.vsnd"
+			"sounds/zr/countdown/6.vsnd"
 		]
 	}
 	countdown7 = 
@@ -139,7 +139,7 @@
 		base = "zr.amb.base"
 		vsnd_files_track_01 = 
 		[
-			"sounds/zr/countdown/countdown7.vsnd"
+			"sounds/zr/countdown/7.vsnd"
 		]
 	}
 	countdown8 = 
@@ -147,7 +147,7 @@
 		base = "zr.amb.base"
 		vsnd_files_track_01 = 
 		[
-			"sounds/zr/countdown/countdown8.vsnd"
+			"sounds/zr/countdown/8.vsnd"
 		]
 	}
 	countdown9 = 
@@ -155,7 +155,7 @@
 		base = "zr.amb.base"
 		vsnd_files_track_01 = 
 		[
-			"sounds/zr/countdown/countdown9.vsnd"
+			"sounds/zr/countdown/9.vsnd"
 		]
 	}
 	countdown10 = 
@@ -163,7 +163,7 @@
 		base = "zr.amb.base"
 		vsnd_files_track_01 = 
 		[
-			"sounds/zr/countdown/countdown10.vsnd"
+			"sounds/zr/countdown/10.vsnd"
 		]
 	}
 }

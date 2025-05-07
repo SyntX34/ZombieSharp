@@ -1,3 +1,5 @@
+using System.Dynamic;
+
 namespace ZombieSharp.Models;
 
 public class GameConfigs
@@ -32,9 +34,14 @@ public class GameConfigs
     public bool AllowRespawnJoinLate { get; set; } = false;
     public int RespawTeam { get; set; } = 0;
 
+    public bool SuicideRespawnZM { get; set; } = true;
+
     // win overlay stuff
     public string HumanWinOverlayParticle { get; set; } = string.Empty;
     public string HumanWinOverlayMaterial { get; set; } = string.Empty;
     public string ZombieWinOverlayParticle { get; set; } = string.Empty;
     public string ZombieWinOverlayMaterial { get; set; } = string.Empty;
+
+    public bool EnableCountDownSounds { get; set; } = false;
+    public string CountDownSoundsPath { get; set; } = string.Empty;
 }

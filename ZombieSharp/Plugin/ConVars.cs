@@ -225,6 +225,16 @@ public class ConVars
             GameSettings.Settings.ZombieWinOverlayMaterial = value;
         };
 
+        _core.CVAR_EnableCountDownSound.ValueChanged += (sender, value) =>
+        {
+            GameSettings.Settings.EnableCountDownSounds = value;
+        };
+
+        _core.CVAR_CountDownSoundPath.ValueChanged += (sender, value) =>
+        {
+            GameSettings.Settings.CountDownSoundsPath = value;
+        };
+
         // create convar first.
         _core.RegisterFakeConVars(typeof(ConVars));
     }
@@ -298,6 +308,8 @@ public class ConVars
         CreateConVarLine(configFile, _core.CVAR_HumanWinOverlayMaterial);
         CreateConVarLine(configFile, _core.CVAR_ZombieWinOverlayParticle);
         CreateConVarLine(configFile, _core.CVAR_ZombieWinOverlayMaterial);
+        CreateConVarLine(configFile, _core.CVAR_EnableCountDownSound);
+        CreateConVarLine(configFile, _core.CVAR_CountDownSoundPath);
 
         configFile.Close();
     }
